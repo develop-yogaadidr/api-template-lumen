@@ -22,6 +22,12 @@ php artisan migrate
 ```
 php artisan migrate:fresh
 ```
+
+## Generate user seed
+```
+php artisan db:seed --class=UserTableSeeder
+```
+
 # Generate secret JWT key 
 ```shell
 php artisan jwt:secret
