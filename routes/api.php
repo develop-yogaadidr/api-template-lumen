@@ -20,6 +20,10 @@ $router->get('/', ['middleware' => 'auth', function () use ($router) {
 }]);
 
 $router->group(['prefix' => 'api'], function ($router) {
+    $router->post('reset-password', 'UserController@resetPassword');
+    $router->post('reset-password/validate', 'UserController@validateResetPassword');
+    $router->put('change-password', 'UserController@changePassword');
+
     $router->group(['prefix' => 'auth'], function ($auth){
         $auth->post('login', 'AuthController@login');
         $auth->post('logout', 'AuthController@logout');
@@ -31,6 +35,7 @@ $router->group(['prefix' => 'api'], function ($router) {
         $example->get('/', 'UserController@getAll');
         $example->get('/{id}', 'UserController@getById');
         $example->post('/', 'UserController@create');
+        $example->put('/update-password', 'UserController@updatePassword');
         $example->put('/{id}', 'UserController@update');
         $example->delete('/{id}', 'UserController@delete');
     });

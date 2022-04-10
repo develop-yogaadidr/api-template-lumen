@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\DB;
 use Laravel\Lumen\Routing\Controller as BaseController;
 
 class Controller extends BaseController
@@ -31,5 +32,14 @@ class Controller extends BaseController
         }
 
         if(!$isSuccess) abort(400, 'Missing some properties');
+    }
+
+    protected function getDbTimeNow($addHour = 0)
+    {
+        $result = DB::table('users')
+        ->select(DB::raw('DATE_ADD(NOW(), INTERVAL '.$addHour.' HOUR) as date_time'))
+        ->get();
+
+        return $result[0]->date_time;
     }
 }
