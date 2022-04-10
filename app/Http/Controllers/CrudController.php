@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 use Illuminate\Http\Request;
+use App\Enums\StatusCodes;
 
 abstract class CrudController extends Controller
 {
@@ -31,7 +32,7 @@ abstract class CrudController extends Controller
      */
     public function getById($id)
     {
-        $result = $this->model::find($id);
+        $result = $this->model::findOrFail($id);
         return response()->json($result);
     }
 
@@ -42,23 +43,25 @@ abstract class CrudController extends Controller
      */
     public function create(Request $request)
     {
-        $param = $this->requestToArray($request);
-        $result = $this->model::create($param);
+        $this->validateRequestInput($request, $this->model->getFillable());
+        $result = $this->model->fill($request->all());
+        $result->save();
         
         return response()->json($result);
     }
 
     /**
-     * Create an object
+     * Update an object using the id
      *
      * @return \Illuminate\Http\JsonResponse
      */
     public function update(Request $request, $id)
     {
-        $param = $this->requestToArray($request);
-        $result = $this->model::where('id',$id)->update($param);
+        $this->validateRequestInput($request, $this->model->getFillable());
+        $result = $this->model::findOrFail($id)->fill($request->all());
+        $result->save();
 
-        return response()->json($result);
+        return response()->json(null, StatusCodes::NoContent);
     }
 
     /**
@@ -68,9 +71,9 @@ abstract class CrudController extends Controller
      */
     public function delete($id)
     {
-        $object = $this->model::find($id);
-        $result = $object->delete();
+        $object = $this->model::findOrFail($id);
+        $object->delete();
 
-        return response()->json($result);
+        return response()->json(null, StatusCodes::NoContent);
     }
 }

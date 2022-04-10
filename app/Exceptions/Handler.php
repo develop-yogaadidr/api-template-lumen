@@ -2,8 +2,12 @@
 
 namespace App\Exceptions;
 
+use App\Enums\StatusCodes;
+use App\Enums\MariaDbCodes;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\QueryException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Validation\ValidationException;
 use Laravel\Lumen\Exceptions\Handler as ExceptionHandler;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -49,6 +53,70 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $exception)
     {
-        return parent::render($request, $exception);
+        return $this->handleApiException($request, $exception);
+    }
+
+    private function handleApiException($request, Throwable $exception)
+    {
+        $exc = $this->prepareJsonResponse($request, $exception);
+        $statusCode = $exc->getStatusCode();
+
+        if ($exception instanceof HttpResponseException) 
+        {
+            $exc = $exception->getResponse();
+        }
+        
+        if($exception instanceof ModelNotFoundException)
+        {
+            $statusCode = StatusCodes::NotFound;
+        }
+
+        if($exception instanceof QueryException)
+        {
+            $statusCode = StatusCodes::UnprocessableEntity;
+            $exc->original['message'] = $exception->errorInfo[2];
+        }
+
+        if($exception instanceof ValidationException)
+        {
+            return parent::render($request, $exception);
+        }
+
+        return $this->printResponse($exc, $statusCode);
+    }
+
+    private function printResponse($exception, $statusCode)
+    {
+        $response = [];
+    
+        switch ($statusCode) {
+            case StatusCodes::Unauthorized:
+                $response['message'] = 'Unauthorized';
+                break;
+            case StatusCodes::Forbidden:
+                $response['message'] = 'Forbidden';
+                break;
+            case StatusCodes::NotFound:
+                $response['message'] = $exception->original['message'] != null ? $exception->original['message'] : 'Not Found';
+                break;
+            case StatusCodes::MethodNotAllowed:
+                $response['message'] = 'Method Not Allowed';
+                break;
+            case StatusCodes::UnprocessableEntity:
+                $response['message'] = $exception->original['message'];
+                break;
+            case StatusCodes::BadRequest:
+                $response['message'] = $exception->original['message'];
+                break;
+            default:
+                $response['message'] = ($statusCode == StatusCodes::InternalServerError) ?  $exception->original['message'] : $exception->getMessage();
+                break;
+        }
+    
+        if (config('app.debug')) {
+            // $response['trace'] = $exception->original['trace'];
+        }
+    
+        return response()->json($response, $statusCode);
     }
 }
