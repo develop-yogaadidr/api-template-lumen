@@ -60,35 +60,33 @@ class Handler extends ExceptionHandler
     {
         $exc = $this->prepareJsonResponse($request, $exception);
         $statusCode = $exc->getStatusCode();
+        $data = null;
 
-        if ($exception instanceof HttpResponseException) 
-        {
+        if ($exception instanceof HttpResponseException) {
             $exc = $exception->getResponse();
         }
-        
-        if($exception instanceof ModelNotFoundException)
-        {
+
+        if ($exception instanceof ModelNotFoundException) {
             $statusCode = StatusCodes::NotFound;
         }
 
-        if($exception instanceof QueryException)
-        {
+        if ($exception instanceof QueryException) {
             $statusCode = StatusCodes::UnprocessableEntity;
             $exc->original['message'] = $exception->errorInfo[2];
         }
 
-        if($exception instanceof ValidationException)
-        {
-            return parent::render($request, $exception);
+        if ($exception instanceof ValidationException) {
+            $statusCode = StatusCodes::UnprocessableEntity;
+            $data = $exception->getResponse()->original;
         }
 
-        return $this->printResponse($exc, $statusCode);
+        return $this->printResponse($exc, $statusCode, $data);
     }
 
-    private function printResponse($exception, $statusCode)
+    private function printResponse($exception, $statusCode, $data = null)
     {
         $response = [];
-    
+
         switch ($statusCode) {
             case StatusCodes::Unauthorized:
                 $response['message'] = 'Unauthorized';
@@ -104,6 +102,10 @@ class Handler extends ExceptionHandler
                 break;
             case StatusCodes::UnprocessableEntity:
                 $response['message'] = $exception->original['message'];
+                if($data != null)
+                {
+                    $response['data'] = $data;
+                }
                 break;
             case StatusCodes::BadRequest:
                 $response['message'] = $exception->original['message'];
@@ -112,11 +114,11 @@ class Handler extends ExceptionHandler
                 $response['message'] = ($statusCode == StatusCodes::InternalServerError) ?  $exception->original['message'] : $exception->getMessage();
                 break;
         }
-    
+
         if (config('app.debug')) {
             // $response['trace'] = $exception->original['trace'];
         }
-    
+
         return response()->json($response, $statusCode);
     }
 }
