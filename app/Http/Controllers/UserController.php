@@ -9,7 +9,7 @@ class UserController extends CrudController
 {
     public function __construct()
     {
-        $this->middleware('auth:api');
+        // $this->middleware('auth:api');
 
         $model = new User;
         parent::__construct($model);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Enums\StatusCodes;
+use App\Helpers\QueryGenerator;
 
 abstract class CrudController extends Controller
 {
@@ -17,9 +18,11 @@ abstract class CrudController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getAll()
+    public function getAll(Request $request)
     {
-        $result = $this->model::all();
+        $generatedRequest = new QueryGenerator($this->model);
+        $result = $generatedRequest->searchGenerator($request);
+        
         return response()->json($result);
     }
 
