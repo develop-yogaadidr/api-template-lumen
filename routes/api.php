@@ -15,9 +15,9 @@ use App\Http\Controllers\ExampleController;
 |
 */
 
-$router->get('/', ['middleware' => 'auth', function () use ($router) {
+$router->get('/', function () use ($router) {
     return $router->app->version();
-}]);
+});
 
 $router->group(['prefix' => 'api'], function ($router) {
     $router->post('reset-password', 'UserController@resetPassword');
@@ -35,7 +35,8 @@ $router->group(['prefix' => 'api'], function ($router) {
         $example->get('/', 'UserController@getAll');
         $example->get('/{id}', 'UserController@getById');
         $example->post('/', 'UserController@create');
-        $example->put('/update-password', 'UserController@updatePassword');
+        $example->put('/fcm-token', 'UserController@updateFcmToken');
+        $example->put('/password', 'UserController@updatePassword');
         $example->put('/{id}', 'UserController@update');
         $example->delete('/{id}', 'UserController@delete');
     });

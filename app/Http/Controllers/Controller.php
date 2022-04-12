@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use app\Helpers\MessageParameter;
 use Illuminate\Support\Facades\DB;
+use Kreait\Firebase\Messaging\CloudMessage;
 use Laravel\Lumen\Routing\Controller as BaseController;
 
 class Controller extends BaseController
 {
+    public $messaging;
+
     protected function requestToArray($request)
     {
         $arrResponse = array();
@@ -41,5 +45,19 @@ class Controller extends BaseController
         ->get();
 
         return $result[0]->date_time;
+    }
+
+    /**
+     * Send Firebase Cloud Messaging
+     * 
+     * @param MessageParameter $params
+     */
+    protected function sendMessage(MessageParameter $params)
+    {
+        $message = CloudMessage::withTarget($params->getTarget()->getKey(), $params->getTarget()->getValue())
+            ->withNotification($params->getNotification());
+        if($params->getData() != null) $message->withData($params->getData());
+        
+        $this->messaging->send($message);
     }
 }

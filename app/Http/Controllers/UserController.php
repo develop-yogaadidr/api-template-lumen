@@ -7,16 +7,29 @@ use App\Models\ForgotPassword;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Enums\StatusCodes;
+use App\Helpers\MessageParameter;
 use App\Helpers\StringHelper;
+use Kreait\Firebase\Messaging;
+use Kreait\Firebase\Messaging\MessageTarget;
 
-class UserController extends CrudController
+class UserController extends CrudController 
 {
-    public function __construct()
+    public function __construct(Messaging $messaging)
     {
         $this->middleware('auth:api', ['except' => ['resetPassword', 'validateResetPassword', 'changePassword']]);
 
         $model = new User;
         parent::__construct($model);
+        $this->messaging = $messaging;
+    }
+
+    public function getAll(Request $request)
+    {
+        $message = new MessageParameter;
+        $message->setNotification("halo", "hai");
+        $message->setTarget(MessageTarget::TOPIC, "topic-A");
+
+        $this->sendMessage($message);
     }
 
     public function create(Request $request)
@@ -61,6 +74,20 @@ class UserController extends CrudController
         }
 
         $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        return response()->json(null, 204);
+    }
+
+    //// Firebase section
+    public function updateFcmToken(Request $request)
+    {
+        $this->validate($request, [
+            'fcm_token' => 'required',
+        ]);
+
+        $user = User::where('id', auth()->user()->id)->firstOrFail();
+        $user->fcm_token = $request->fcm_token;
         $user->save();
 
         return response()->json(null, 204);
