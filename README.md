@@ -13,13 +13,28 @@
     composer install
     ```
 3. Copy file `.env.example` and rename to `.env`.
-4. Update `.env` value of `DB_CONNECTION`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` according to your database connection.
+4. Update the `.env` value of the properties `DB_CONNECTION`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` according to your database connection.
 
 5. Generate JWT Key by executing this in the command line
     ```shell
     php artisan jwt:secret
     ```
     This will update your .env file with something like JWT_SECRET=foobar
+
+## Setting Up The Mail
+
+Open your `.env` file and update the value of the properties according your mail credentials:
+
+```
+MAIL_DRIVER=smtp
+MAIL_HOST=smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=
+MAIL_PASSWORD=
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=hello@example.com
+MAIL_FROM_NAME="Example app"
+```
 
 ## Migration Database
 
