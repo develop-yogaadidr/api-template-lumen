@@ -35,7 +35,8 @@ $router->group(['prefix' => 'api'], function ($router) {
         $example->get('/', 'UserController@getAll');
         $example->get('/{id}', 'UserController@getById');
         $example->post('/', 'UserController@create');
-        $example->put('/update-password', 'UserController@updatePassword');
+        $example->put('/fcm-token', 'UserController@updateFcmToken');
+        $example->put('/password', 'UserController@updatePassword');
         $example->put('/{id}', 'UserController@update');
         $example->delete('/{id}', 'UserController@delete');
     });

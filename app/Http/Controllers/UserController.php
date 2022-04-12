@@ -79,6 +79,20 @@ class UserController extends CrudController
         return response()->json(null, 204);
     }
 
+    //// Firebase section
+    public function updateFcmToken(Request $request)
+    {
+        $this->validate($request, [
+            'fcm_token' => 'required',
+        ]);
+
+        $user = User::where('id', auth()->user()->id)->firstOrFail();
+        $user->fcm_token = $request->fcm_token;
+        $user->save();
+
+        return response()->json(null, 204);
+    }
+
     //// Forgot password section
     public function resetPassword(Request $request)
     {
