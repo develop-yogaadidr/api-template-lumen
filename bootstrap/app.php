@@ -81,6 +81,9 @@ $app->alias('mailer', Illuminate\Contracts\Mail\MailQueue::class);
 // $app->middleware([
 //     App\Http\Middleware\ExampleMiddleware::class
 // ]);
+$app->middleware([
+    App\Http\Middleware\CorsMiddleware::class
+]);
 
 $app->routeMiddleware([
     'auth' => App\Http\Middleware\Authenticate::class,
@@ -98,11 +101,13 @@ $app->routeMiddleware([
 */
 
 // $app->register(App\Providers\AppServiceProvider::class);
-$app->register(App\Providers\AuthServiceProvider::class);
 // $app->register(App\Providers\EventServiceProvider::class);
+$app->register(App\Providers\AuthServiceProvider::class);
 $app->register(Tymon\JWTAuth\Providers\LumenServiceProvider::class);
 $app->register(Kreait\Laravel\Firebase\ServiceProvider::class);
 $app->register(Illuminate\Mail\MailServiceProvider::class);
+$app->register(App\Providers\CatchAllOptionsRequestsProvider::class);
+
 /*
 |--------------------------------------------------------------------------
 | Load The Application Routes
