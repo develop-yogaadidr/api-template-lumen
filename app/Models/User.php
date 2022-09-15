@@ -15,11 +15,11 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
 {
     use Authenticatable, Authorizable;
 
-    protected $fillable = ['name', 'email', 'email_verified_at', 'password', 'remember_token'];
+    protected $fillable = ['name', 'email', 'verified_at', 'password', 'remember_token', 'photo'];
 
     protected $guarded = ['created_at', 'updated_at', 'id'];
 
-    protected $hidden = ['password', 'remember_token', 'email_verified_at', 'created_at', 'updated_at'];
+    protected $hidden = ['password', 'remember_token', 'fcm_token', 'verified_at', 'created_at', 'updated_at'];
 
     /**
      * Get the identifier that will be stored in the subject claim of the JWT.
@@ -49,5 +49,10 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
     public function getFillable()
     {
         return $this->fillable;
+    }
+
+    public function forgotPassword()
+    {
+        return $this->hasMany(ForgotPassword::class, 'user_id', 'id');
     }
 }

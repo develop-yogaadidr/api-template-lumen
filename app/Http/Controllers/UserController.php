@@ -7,10 +7,8 @@ use App\Models\ForgotPassword;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Enums\StatusCodes;
-use App\Helpers\MessageParameter;
 use App\Helpers\StringHelper;
 use Kreait\Firebase\Messaging;
-use Kreait\Firebase\Messaging\MessageTarget;
 
 class UserController extends CrudController 
 {
@@ -21,51 +19,46 @@ class UserController extends CrudController
         $model = new User;
         parent::__construct($model);
         $this->messaging = $messaging;
-    }
-
-    public function getAll(Request $request)
-    {
-        $message = new MessageParameter;
-        $message->setNotification("halo", "hai");
-        $message->setTarget(MessageTarget::TOPIC, "topic-A");
-
-        $this->sendMessage($message);
+        $this->createRules = [
+            'name' => 'required|max:50',
+            'email' => 'required|unique:users',
+            'password' => 'required|min:6|required_with:retype_password|same:retype_password',
+            // 'password' => 'required|min:6|regex:/^.*(?=.{3,})(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[\d\x]).*$/|required_with:retype_password|same:retype_password',
+            'retype_password' => 'required|min:6|required_with:password|same:password',
+            // 'retype_password' => 'required|min:6|regex:/^.*(?=.{3,})(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[\d\x]).*$/|required_with:password|same:password',
+        ];
+        $this->updateRules = [
+            'name' => 'required|max:50',
+            'email' => 'required|max:100',
+            'password' => 'prohibited',
+        ];
     }
 
     public function create(Request $request)
     {
-        $this->validate($request, [
-            'name' => 'required|max:50',
-            'email' => 'required|unique:users',
-            'password' => 'required|regex:/^.*(?=.{3,})(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[\d\x])(?=.*[!$#%]).*$/|confirmed',
-        ]);
+        if (!$this->ensureEmailAvailable($request->email)) {
+            return response()->json(array("message" => "Email sudah terdaftar"), StatusCodes::UnprocessableEntity);
+        }
+
+        $this->validate($request, $this->createRules);
 
         $user = new User;
         $user->name = $request->name;
         $user->email = $request->email;
-        $user->password = $request->password;
+        $user->password = Hash::make($request->password);
+        $user->verified_at = $this->getDbTimeNow();
         $user->save();
 
+        // TODO: send email verification
         return response()->json($user);
-    }
-
-    public function update(Request $request, $id)
-    {
-        $this->validate($request, [
-            'name' => 'nullable|max:50',
-            'email' => 'prohibited',
-            'password' => 'prohibited',
-        ]);
-
-        return parent::update($request, $id);
     }
 
     public function updatePassword(Request $request)
     {
         $this->validate($request, [
-            'old_password' => 'required|min:6|regex:/^.*(?=.{3,})(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[\d\x]).*$/',
-            'new_password' => 'required|min:6|regex:/^.*(?=.{3,})(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[\d\x]).*$/|required_with:retype_password|same:retype_password',
-            'retype_password' => 'required|min:6|regex:/^.*(?=.{3,})(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[\d\x]).*$/|required_with:new_password|same:new_password',
+            'old_password' => 'required|min:6',
+            'new_password' => 'required|min:6|required_with:retype_password|same:retype_password',
+            'retype_password' => 'required|min:6|required_with:new_password|same:new_password',
         ]);
 
         $user = User::where('id', auth()->user()->id)->firstOrFail();
@@ -76,7 +69,7 @@ class UserController extends CrudController
         $user->password = Hash::make($request->new_password);
         $user->save();
 
-        return response()->json(null, 204);
+        return response()->json(null, StatusCodes::NoContent);
     }
 
     //// Firebase section
@@ -91,6 +84,15 @@ class UserController extends CrudController
         $user->save();
 
         return response()->json(null, 204);
+    }
+    
+    public function revokeFcmToken(Request $request)
+    {
+        $user = User::where('id', auth()->user()->id)->firstOrFail();
+        $user->fcm_token = null;
+        $user->save();
+
+        return response()->json(null, StatusCodes::NoContent);
     }
 
     //// Forgot password section
@@ -114,8 +116,14 @@ class UserController extends CrudController
         $forgotPassword->expired_at = $this->getDbTimeNow(1);
         $forgotPassword->save();
 
-        //TODO: send email to user within data $token 
-        return response()->json(array('verification_code' => $token), 200);
+        $maildata = [
+            'title' => 'Halo, ' . $user->name,
+            'token' =>  $token,
+            'body' => "Berikut kode verifikasi untuk melanjutkan proses reset password:"
+        ];
+        $this->sendEmail($user->email, "Reset Password", $maildata);
+
+        return response()->json(array('message' => "Permintaan reset password terkirim"), StatusCodes::Ok);
     }
 
     public function validateResetPassword(Request $request)
@@ -156,8 +164,8 @@ class UserController extends CrudController
     {
         $this->validate($request, [
             'token' => 'required',
-            'new_password' => 'required|min:6|regex:/^.*(?=.{3,})(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[\d\x]).*$/|required_with:retype_password|same:retype_password',
-            'retype_password' => 'required|min:6|regex:/^.*(?=.{3,})(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[\d\x]).*$/|required_with:new_password|same:new_password',
+            'new_password' => 'required|min:6|required_with:retype_password|same:retype_password',
+            'retype_password' => 'required|min:6|required_with:new_password|same:new_password',
         ]);
 
         $forgotPassword = ForgotPassword::where('token', $request->token)
@@ -177,5 +185,11 @@ class UserController extends CrudController
         $update->save();
 
         return response()->json(null, 204);
+    }
+
+    private function ensureEmailAvailable($email)
+    {
+        $user = User::where('email', $email)->first();
+        return $user == null;
     }
 }

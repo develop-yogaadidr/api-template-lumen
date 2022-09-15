@@ -3,13 +3,14 @@
 namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Enums\StatusCodes;
-use App\Helpers\MessageParameter;
 use App\Helpers\QueryGenerator;
-use Kreait\Firebase\Messaging\MessageTarget;
 
 abstract class CrudController extends Controller
 {
     private $model;
+    public $createRules;
+    public $updateRules;
+
     protected function __construct($model)
     {
         $this->model = $model;
@@ -35,9 +36,17 @@ abstract class CrudController extends Controller
      * 
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getById($id)
+    public function getById(Request $request, $id)
     {
-        $result = $this->model::findOrFail($id);
+        $model = $this->model;
+        if ($request->join !== null && $request->join !== '') {
+            $join = strtolower($request->join);
+            $words = explode(",", $join);
+            $model = $model->with($words);
+        }
+
+        $result = $model->findOrFail($id);
+
         return response()->json($result);
     }
 
@@ -48,10 +57,11 @@ abstract class CrudController extends Controller
      */
     public function create(Request $request)
     {
-        $this->validateRequestInput($request, $this->model->getFillable());
+        if ($this->createRules != null) $this->validate($request, $this->createRules);
+
         $result = $this->model->fill($request->all());
         $result->save();
-        
+
         return response()->json($result);
     }
 
@@ -62,7 +72,8 @@ abstract class CrudController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $this->validateRequestInput($request, $this->model->getFillable());
+        if ($this->updateRules != null) $this->validate($request, $this->updateRules);
+
         $result = $this->model::findOrFail($id)->fill($request->all());
         $result->save();
 

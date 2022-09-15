@@ -23,6 +23,8 @@ $router->group(['prefix' => 'api'], function ($router) {
     $router->post('reset-password', 'UserController@resetPassword');
     $router->post('reset-password/validate', 'UserController@validateResetPassword');
     $router->put('change-password', 'UserController@changePassword');
+    $router->post('test-notification/token', 'TestController@testUsingToken');
+    $router->post('test-notification/topic', 'TestController@testUsingTopics');
 
     $router->group(['prefix' => 'auth'], function ($auth){
         $auth->post('login', 'AuthController@login');
@@ -31,13 +33,15 @@ $router->group(['prefix' => 'api'], function ($router) {
         $auth->post('user-profile', 'AuthController@me');
     });
 
-    $router->group(['prefix' => 'users'], function ($example){
-        $example->get('/', 'UserController@getAll');
-        $example->get('/{id}', 'UserController@getById');
-        $example->post('/', 'UserController@create');
-        $example->put('/fcm-token', 'UserController@updateFcmToken');
-        $example->put('/password', 'UserController@updatePassword');
-        $example->put('/{id}', 'UserController@update');
-        $example->delete('/{id}', 'UserController@delete');
+    $router->group(['prefix' => 'users'], function ($user){
+        $user->get('/', 'UserController@getAll');
+        $user->get('/{id}', 'UserController@getById');
+        $user->post('/register', 'UserController@create');
+        $user->post('/photo', 'UserController@updatePhoto');
+        $user->put('/fcm-token', 'UserController@updateFcmToken');
+        $user->post('/fcm-token/revoke', 'UserController@revokeFcmToken');
+        $user->put('/password', 'UserController@updatePassword');
+        $user->put('/{id}', 'UserController@update');
+        $user->delete('/{id}', 'UserController@delete');
     });
 });
